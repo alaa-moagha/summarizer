@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تلخيص المقالات العربية</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>منصة تلخيص المقالات العربية</h1>
+        
+        <div class="input-section">
+            <label for="article">أدخل نص المقال:</label>
+            <textarea id="article" rows="15" placeholder="اكتب أو الصق نص المقال العربي هنا..."></textarea>
+            <button onclick="summarizeArticle()" id="summarizeBtn">تلخيص</button>
+        </div>
+        
+        <div class="loading" id="loading" style="display: none;">
+            <div class="spinner"></div>
+            <p>جاري التلخيص...</p>
+        </div>
+        
+        <div class="result-section" id="resultSection" style="display: none;">
+            <h3>الملخص:</h3>
+            <div id="summary" class="summary-text"></div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
