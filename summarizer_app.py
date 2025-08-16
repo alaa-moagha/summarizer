@@ -1,58 +1,74 @@
-import streamlit as st
-from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
+from flask import Flask, request, jsonify, render_template
 import torch
+from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 
-# تحميل النموذج
-@st.cache_resource
-def load_model():
-    model_name = "moussaKam/AraBART"
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
-    model = AutoModelForSeq2SeqLM.from_pretrained(model_name).to(device)
-    return tokenizer, model
+app = Flask(__name__)
 
-device = "cuda" if torch.cuda.is_available() else "cpu"
-tokenizer, model = load_model()
+# استخدام النموذج المحلي المحسّن
+MODEL_PATH = "./model"  # تأكد أن مجلد النموذج موجود هنا
+try:
+    tokenizer = AutoTokenizer.from_pretrained(MODEL_PATH)
+    model = AutoModelForSeq2SeqLM.from_pretrained(MODEL_PATH)
+    
+    # نقل النموذج إلى GPU إذا كان متاحًا
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = model.to(device)
+    print("✅ تم تحميل النموذج بنجاح!")
+    
+except Exception as e:
+    print(f"❌ خطأ في تحميل النموذج: {e}")
+    exit(1)
 
-# دالة التلخيص
-def summarize_arabart(text, max_chunk_len=800, summary_max_len=200, summary_min_len=50):
-    sentences = text.split('.')
-    chunks, chunk = [], ''
-    for sentence in sentences:
-        if len(chunk) + len(sentence) < max_chunk_len:
-            chunk += sentence.strip() + '. '
-        else:
-            chunks.append(chunk.strip())
-            chunk = sentence.strip() + '. '
-    if chunk:
-        chunks.append(chunk.strip())
-
-    summaries = []
-    for chunk in chunks:
-        inputs = tokenizer.encode(chunk, return_tensors="pt", max_length=1024, truncation=True).to(device)
+def summarize_text(text, max_length=150, min_length=50):
+    # تحضير النص لإدخال النموذج (حسب طريقة تدريب نموذجك)
+    # جرب إحدى الطريقتين:
+    
+    # الطريقة 1: إذا كان مدرب على مهمة summarization مباشرة
+    inputs = tokenizer.encode(text, return_tensors="pt", max_length=1024, truncation=True)
+    
+    # الطريقة 2: إذا كان بحاجة لـ prefix (فكoment الأسطر التالية إذا لزم)
+    # input_text = f"summarize: {text}"
+    # inputs = tokenizer.encode(input_text, return_tensors="pt", max_length=1024, truncation=True)
+    
+    inputs = inputs.to(device)
+    
+    with torch.no_grad():
         summary_ids = model.generate(
-            inputs,
-            num_beams=4,
-            max_length=summary_max_len,
-            min_length=summary_min_len,
-            no_repeat_ngram_size=2,
-            length_penalty=2.0,
-            early_stopping=True
+            inputs, 
+            max_length=max_length, 
+            min_length=min_length, 
+            length_penalty=2.0, 
+            num_beams=4, 
+            early_stopping=True,
+            do_sample=False  # لتلخيص ثابت
         )
-        summary = tokenizer.decode(summary_ids[0], skip_special_tokens=True)
-        summaries.append(summary.strip())
-    return "\n\n".join(summaries)
+    
+    summary = tokenizer.decode(summary_ids[0], skip_special_tokens=True)
+    return summary
 
-# واجهة Streamlit
-st.set_page_config(page_title="ملخص ذكي", layout="wide")
-st.title("🧠 تلخيص النصوص العربية باستخدام AraBART")
+@app.route('/')
+def home():
+    return render_template('index.html')
 
-text_input = st.text_area("📜 أدخل نصًا عربيًا طويلًا لتلخيصه:", height=300)
+@app.route('/summarize', methods=['POST'])
+def summarize():
+    try:
+        data = request.json
+        text = data['text']
+        
+        if not text.strip():
+            return jsonify({'error': 'الرجاء إدخال نص للمقال'}), 400
+        
+        # التحقق من طول النص
+        if len(text) < 30:
+            return jsonify({'error': 'النص قصير جداً للتلخيص'}), 400
+            
+        summary = summarize_text(text)
+        return jsonify({'summary': summary})
+    
+    except Exception as e:
+        print(f"خطأ في التلخيص: {e}")  # للتصحيح
+        return jsonify({'error': f'حدث خطأ أثناء التلخيص: {str(e)}'}), 500
 
-if st.button("تلخيص"):
-    if text_input.strip():
-        with st.spinner("يتم تلخيص النص..."):
-            summary = summarize_arabart(text_input)
-            st.subheader("📌 الملخص:")
-            st.success(summary)
-    else:
-        st.warning("يرجى إدخال نص أولاً.")
+if __name__ == '__main__':
+    app.run(debug=True, host='0.0.0.0', port=5000)
