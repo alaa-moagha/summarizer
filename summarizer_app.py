@@ -5,7 +5,7 @@ from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 app = Flask(__name__)
 
 # استخدام النموذج المحلي المحسّن
-MODEL_PATH = "./model"  # تأكد أن مجلد النموذج موجود هنا
+MODEL_PATH = "./model" 
 try:
     tokenizer = AutoTokenizer.from_pretrained(MODEL_PATH)
     model = AutoModelForSeq2SeqLM.from_pretrained(MODEL_PATH)
@@ -13,22 +13,15 @@ try:
     # نقل النموذج إلى GPU إذا كان متاحًا
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = model.to(device)
-    print("✅ تم تحميل النموذج بنجاح!")
+    print("✅ Model loaded successfully")
     
 except Exception as e:
-    print(f"❌ خطأ في تحميل النموذج: {e}")
+    print(f"❌ Model loading failed: {e}")
     exit(1)
 
 def summarize_text(text, max_length=150, min_length=50):
-    # تحضير النص لإدخال النموذج (حسب طريقة تدريب نموذجك)
-    # جرب إحدى الطريقتين:
-    
-    # الطريقة 1: إذا كان مدرب على مهمة summarization مباشرة
+    # تحضير النص لإدخال النموذج     
     inputs = tokenizer.encode(text, return_tensors="pt", max_length=1024, truncation=True)
-    
-    # الطريقة 2: إذا كان بحاجة لـ prefix (فكoment الأسطر التالية إذا لزم)
-    # input_text = f"summarize: {text}"
-    # inputs = tokenizer.encode(input_text, return_tensors="pt", max_length=1024, truncation=True)
     
     inputs = inputs.to(device)
     
@@ -64,7 +57,12 @@ def summarize():
             return jsonify({'error': 'النص قصير جداً للتلخيص'}), 400
             
         summary = summarize_text(text)
-        return jsonify({'summary': summary})
+        return jsonify({
+        'summary': summary,
+        'original_length': len(text),
+        'summary_length': len(summary),
+        'compression_ratio': round((1 - len(summary) / len(text)) * 100) if len(text) > 0 else 0
+    })
     
     except Exception as e:
         print(f"خطأ في التلخيص: {e}")  # للتصحيح
