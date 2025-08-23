@@ -1,32 +1,82 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>تلخيص المقالات العربية</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
 </head>
+
 <body>
+    <div class="header">
+        <div class="header-content">
+            <div class="header-icon">📄</div>
+            <div class="header-text">
+                <h1>ملخص المقالات العربية</h1>
+                <p>تلخيص ذكي للمقالات العربية باستخدام الذكاء الاصطناعي</p>
+            </div>
+        </div>
+    </div>
+
     <div class="container">
-        <h1>منصة تلخيص المقالات العربية</h1>
-        
         <div class="input-section">
-            <label for="article">أدخل نص المقال:</label>
-            <textarea id="article" rows="15" placeholder="اكتب أو الصق نص المقال العربي هنا..."></textarea>
-            <button onclick="summarizeArticle()" id="summarizeBtn">تلخيص</button>
+            <div class="section-title">
+                <div class="section-icon">✏️</div>
+                <h2>إدخال المقال</h2>
+            </div>
+
+            <label class="input-label">
+                النص المقال العربي هنا
+                <span class="help-icon">؟</span>
+            </label>
+
+            <div class="input-wrapper">
+                <textarea id="article" placeholder="اكتب أو الصق النص المقال العربي هنا..."></textarea>
+                <div class="char-counter" id="charCounter">0 حرف</div>
+            </div>
+
+            <button class="submit-btn" id="summarizeBtn" onclick="summarizeArticle()">
+                <span class="btn-icon">🔍</span>
+                تلخيص المقال
+            </button>
         </div>
-        
-        <div class="loading" id="loading" style="display: none;">
-            <div class="spinner"></div>
-            <p>جاري التلخيص...</p>
-        </div>
-        
-        <div class="result-section" id="resultSection" style="display: none;">
-            <h3>الملخص:</h3>
-            <div id="summary" class="summary-text"></div>
+
+        <div class="output-section">
+            <div class="section-title">
+                <div class="section-icon">📋</div>
+                <h2>الملخص</h2>
+            </div>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                جاري التلخيص...
+            </div>
+
+            <div class="summary-content" id="summaryContent">
+                أدخل نصاً عربياً واضغط على "تلخيص المقال" لرؤية الملخص هنا.
+            </div>
+
+            <div class="stats-container" id="statsContainer" style="display: none;">
+                <div class="stat-item">
+                    <div class="stat-number" id="originalLength">0</div>
+                    <div class="stat-label">عدد أحرف النص الأصلي</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="summaryLength">0</div>
+                    <div class="stat-label">عدد أحرف الملخص</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number" id="compressionRatio">0%</div>
+                    <div class="stat-label">نسبة الضغط</div>
+                </div>
+            </div>
         </div>
     </div>
 
     <script src="{{ url_for('static', filename='script.js') }}"></script>
+
 </body>
+
 </html>
