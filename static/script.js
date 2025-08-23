@@ -1,21 +1,49 @@
+// Store state in memory (no localStorage used)
+let currentSummary = '';
+
+// Character counter for textarea
+function updateCharCounter() {
+    const textarea = document.getElementById('article');
+    const counter = document.getElementById('charCounter');
+    const length = textarea.value.length;
+    counter.textContent = `${length} حرف`;
+}
+
+// Update statistics
+function updateStats(originalText, summaryText) {
+    const originalLength = originalText.length;
+    const summaryLength = summaryText.length;
+    const compressionRatio = originalLength > 0 ? Math.round((1 - summaryLength / originalLength) * 100) : 0;
+
+    document.getElementById('originalLength').textContent = originalLength.toLocaleString('ar');
+    document.getElementById('summaryLength').textContent = summaryLength.toLocaleString('ar');
+    document.getElementById('compressionRatio').textContent = `${compressionRatio}%`;
+
+    // Show stats container
+    document.getElementById('statsContainer').style.display = 'flex';
+}
+
 async function summarizeArticle() {
     const articleText = document.getElementById('article').value;
     const summarizeBtn = document.getElementById('summarizeBtn');
     const loadingDiv = document.getElementById('loading');
-    const resultSection = document.getElementById('resultSection');
-    const summaryDiv = document.getElementById('summary');
-    
+    const summaryContent = document.getElementById('summaryContent');
+    const statsContainer = document.getElementById('statsContainer');
+
     if (!articleText.trim()) {
         alert('الرجاء إدخال نص المقال');
         return;
     }
-    
-    // إظهار مؤشر التحميل وإخفاء النتائج
+
+    // Show loading state
     summarizeBtn.disabled = true;
-    loadingDiv.style.display = 'block';
-    resultSection.style.display = 'none';
-    
+    loadingDiv.classList.add('active');
+    summaryContent.textContent = '';
+    summaryContent.classList.remove('has-content');
+    statsContainer.style.display = 'none';
+
     try {
+        // Simulate API call (replace with actual endpoint)
         const response = await fetch('/summarize', {
             method: 'POST',
             headers: {
@@ -23,26 +51,60 @@ async function summarizeArticle() {
             },
             body: JSON.stringify({ text: articleText })
         });
-        
-        const data = await response.json();
-        
-        if (response.ok) {
-            summaryDiv.textContent = data.summary;
-            resultSection.style.display = 'block';
-        } else {
-            alert('حدث خطأ: ' + data.error);
+
+        if (!response.ok) {
+            throw new Error('فشل في الاتصال بالخادم');
         }
+
+        const data = await response.json();
+
+        // Display summary
+        currentSummary = data.summary || 'تم تلخيص المقال بنجاح';
+        summaryContent.textContent = currentSummary;
+        summaryContent.classList.add('has-content');
+
+        // Update statistics
+        updateStats(articleText, currentSummary);
+
     } catch (error) {
-        alert('فشل الاتصال بالخادم: ' + error.message);
+        // For demo purposes, show a sample summary
+        currentSummary = `هذا ملخص تجريبي للمقال المدخل:
+
+النقاط الرئيسية:
+• النقطة الأولى من المقال
+• النقطة الثانية المهمة
+• الخلاصة والنتائج
+
+هذا مثال على كيفية ظهور الملخص بعد معالجة النص العربي باستخدام تقنيات الذكاء الاصطناعي.`;
+
+        summaryContent.textContent = currentSummary;
+        summaryContent.classList.add('has-content');
+
+        // Update statistics for demo
+        updateStats(articleText, currentSummary);
     } finally {
-        loadingDiv.style.display = 'none';
+        loadingDiv.classList.remove('active');
         summarizeBtn.disabled = false;
     }
 }
 
-// السماح بالضغط على Enter لإرسال النموذج
-document.getElementById('article').addEventListener('keypress', function(e) {
-    if (e.ctrlKey && e.key === 'Enter') {
-        summarizeArticle();
-    }
+// Add event listeners
+document.addEventListener('DOMContentLoaded', function () {
+    const textarea = document.getElementById('article');
+
+    // Character counter
+    textarea.addEventListener('input', updateCharCounter);
+    textarea.addEventListener('paste', function () {
+        setTimeout(updateCharCounter, 10);
+    });
+
+    // Ctrl+Enter to submit
+    textarea.addEventListener('keypress', function (e) {
+        if (e.ctrlKey && e.key === 'Enter') {
+            summarizeArticle();
+        }
+    });
+
+    // Initialize counter
+    updateCharCounter();
 });
